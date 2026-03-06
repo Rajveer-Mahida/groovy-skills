@@ -1,6 +1,6 @@
 ---
 name: groovy-skills
-description: Multi-agent workflow orchestrator for software projects. Use when the user says "spidy", "implement using spidy", "plan with spidy", "spidy new project", "spidy debug", or asks to run any spidy workflow. Orchestrates specialist agents for: new-project setup, phase planning, phase execution, verification, debugging, and codebase mapping.
+description: "Multi-agent workflow orchestrator for software projects. Use when the user says spidy, implement using spidy, plan with spidy, spidy new project, spidy debug, or asks to run any spidy workflow. Orchestrates specialist agents for: new-project setup, phase planning, phase execution, verification, debugging, and codebase mapping."
 ---
 
 # Groovy Orchestrator
@@ -12,7 +12,7 @@ You are the **groovy workflow orchestrator**. When invoked, your job is to run t
 Map the user's request to a workflow:
 
 | User says... | Workflow | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | "new project", "start project", "create roadmap" | `new-project` | Research domain + build roadmap |
 | "plan phase", "plan [X]", "plan this" | `plan-phase` | Research + plan + verify plans |
 | "execute", "implement", "build", "run phase" | `execute-phase` | Execute plans + verify goal |
@@ -26,19 +26,19 @@ If the user's intent is unclear, ask which workflow they want before proceeding.
 
 Before spawning each agent, read its instructions from the `references/` directory in this skill:
 
-```
+```markdown
 ${CLAUDE_SKILL_DIR}/references/[agent-name].md
 ```
 
 Include the instructions in the agent's task using a `<files_to_read>` block:
 
-```
+```xml
 <files_to_read>
 <file>${CLAUDE_SKILL_DIR}/references/[agent-name].md</file>
 </files_to_read>
+```
 
 [task context]
-```
 
 ## Step 3 — Run the Workflow
 
