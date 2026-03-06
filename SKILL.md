@@ -1,6 +1,6 @@
 ---
 name: groovy-skills
-description: "Multi-agent workflow orchestrator for software projects. Use when the user says spidy, implement using spidy, plan with spidy, spidy new project, spidy debug, or asks to run any spidy workflow. Orchestrates specialist agents for: new-project setup, phase planning, phase execution, verification, debugging, and codebase mapping."
+description: "Multi-agent workflow orchestrator for software projects. Use when the user says spidy, implement using spidy, plan with spidy, spidy new project, spidy debug, or asks to run any spidy workflow. Also use when the user says commit, push, create pr, git workflow, ship it, or asks to branch/commit/PR their changes. Orchestrates specialist agents for: new-project setup, phase planning, phase execution, verification, debugging, codebase mapping, and git workflow."
 ---
 
 # Groovy Orchestrator
@@ -19,6 +19,7 @@ Map the user's request to a workflow:
 | "verify", "check work", "verify phase" | `verify-work` | Verify goal achievement + integration |
 | "debug", "fix bug", "investigate error" | `debug` | Scientific debugging + optional fix |
 | "map codebase", "analyze repo", "explore code" | `map-codebase` | Structural codebase analysis |
+| "commit", "push", "create pr", "ship it", "git workflow", "branch and commit" | `git-workflow` | Branch, commit, push, and create PR |
 
 If the user's intent is unclear, ask which workflow they want before proceeding.
 
@@ -169,6 +170,23 @@ Execute each workflow step by step. After each agent completes, read its output 
    - Task: Map the codebase across focus areas: tech, arch, quality, concerns
    - Include: project path, focus areas
    - On `COMPLETE` → workflow done, report analysis file locations
+
+---
+
+### Workflow: `git-workflow`
+
+**Goal:** Create a feature branch, commit changes with an AI-generated message, push, and open a PR to main.
+
+**Steps:**
+
+1. **groovy-git-workflow**
+   - Task: Handle the full git lifecycle for the current changes
+   - Include: task description (what the user was working on), project path, base branch (default: main)
+   - On `GIT WORKFLOW COMPLETE` → workflow done, report branch, commit, and PR URL to user
+   - On `GIT WORKFLOW SKIPPED` → stop, report no changes found
+   - On `PUSH BLOCKED` → stop, report auth issue to user
+   - On `PR CREATION BLOCKED` → report partial success (committed and pushed), provide manual PR link
+   - On `MERGE CONFLICT` → stop, report conflict and resolution steps
 
 ---
 
