@@ -10,7 +10,7 @@ A collection of agents that power the `/groovy:*` command workflow — from proj
 ## Agent Index
 
 ### groovy-codebase-mapper
-**File:** `agents/groovy-codebase-mapper.md`
+**File:** `references/groovy-codebase-mapper.md`
 
 Explores a codebase for a specific focus area and writes structured analysis documents to `.planning/codebase/`. Spawned by `/groovy:map-codebase`.
 
@@ -25,7 +25,7 @@ Explores a codebase for a specific focus area and writes structured analysis doc
 ---
 
 ### groovy-debugger
-**File:** `agents/groovy-debugger.md`
+**File:** `references/groovy-debugger.md`
 
 Investigates bugs using scientific method (hypothesis testing, evidence gathering, falsifiability). Manages persistent debug sessions via `.planning/debug/` files that survive context resets. Spawned by `/groovy:debug`.
 
@@ -40,7 +40,7 @@ Investigates bugs using scientific method (hypothesis testing, evidence gatherin
 ---
 
 ### groovy-executor
-**File:** `agents/groovy-executor.md`
+**File:** `references/groovy-executor.md`
 
 Executes `PLAN.md` files atomically — one commit per task, handles deviations automatically, pauses at checkpoints, creates `SUMMARY.md` and updates `STATE.md`. Spawned by `/groovy:execute-phase`.
 
@@ -55,7 +55,7 @@ Executes `PLAN.md` files atomically — one commit per task, handles deviations 
 ---
 
 ### groovy-integration-checker
-**File:** `agents/groovy-integration-checker.md`
+**File:** `references/groovy-integration-checker.md`
 
 Verifies cross-phase integration and E2E flows. Checks that exports are imported, APIs have consumers, auth is applied, and user workflows complete end-to-end. Spawned by the milestone auditor.
 
@@ -71,7 +71,7 @@ Verifies cross-phase integration and E2E flows. Checks that exports are imported
 ---
 
 ### groovy-phase-researcher
-**File:** `agents/groovy-phase-researcher.md`
+**File:** `references/groovy-phase-researcher.md`
 
 Researches how to implement a specific phase before planning begins. Produces `RESEARCH.md` that the planner consumes. Uses Context7, official docs, and WebSearch with verified confidence levels. Spawned by `/groovy:plan-phase`.
 
@@ -82,7 +82,7 @@ Researches how to implement a specific phase before planning begins. Produces `R
 ---
 
 ### groovy-plan-checker
-**File:** `agents/groovy-plan-checker.md`
+**File:** `references/groovy-plan-checker.md`
 
 Verifies that plans **will** achieve the phase goal before execution burns context. Goal-backward analysis across 8 dimensions. Spawned by `/groovy:plan-phase` after the planner creates plans.
 
@@ -101,7 +101,7 @@ Verifies that plans **will** achieve the phase goal before execution burns conte
 ---
 
 ### groovy-planner
-**File:** `agents/groovy-planner.md`
+**File:** `references/groovy-planner.md`
 
 Creates executable `PLAN.md` files with task breakdown, dependency analysis, and goal-backward must_haves. Decomposes phases into parallel-optimized plans (2-3 tasks each) with wave assignments. Spawned by `/groovy:plan-phase`.
 
@@ -112,7 +112,7 @@ Creates executable `PLAN.md` files with task breakdown, dependency analysis, and
 ---
 
 ### groovy-project-researcher
-**File:** `agents/groovy-project-researcher.md`
+**File:** `references/groovy-project-researcher.md`
 
 Researches the domain ecosystem before roadmap creation. Runs in parallel with other researchers. Produces files in `.planning/research/` consumed by the roadmapper. Spawned by `/groovy:new-project` or `/groovy:new-milestone`.
 
@@ -125,7 +125,7 @@ Researches the domain ecosystem before roadmap creation. Runs in parallel with o
 ---
 
 ### groovy-research-synthesizer
-**File:** `agents/groovy-research-synthesizer.md`
+**File:** `references/groovy-research-synthesizer.md`
 
 Reads the 4 parallel research outputs (STACK, FEATURES, ARCHITECTURE, PITFALLS) and synthesizes them into a unified `SUMMARY.md` with roadmap implications. Also commits all research files (researchers write but don't commit). Spawned by `/groovy:new-project` after researchers complete.
 
@@ -134,7 +134,7 @@ Reads the 4 parallel research outputs (STACK, FEATURES, ARCHITECTURE, PITFALLS) 
 ---
 
 ### groovy-roadmapper
-**File:** `agents/groovy-roadmapper.md`
+**File:** `references/groovy-roadmapper.md`
 
 Transforms requirements into a phase structure with observable success criteria. Maps every v1 requirement to exactly one phase, validates 100% coverage, derives goal-backward success criteria (2-5 per phase), and initializes `STATE.md`. Spawned by `/groovy:new-project`.
 
@@ -145,7 +145,7 @@ Transforms requirements into a phase structure with observable success criteria.
 ---
 
 ### groovy-verifier
-**File:** `agents/groovy-verifier.md`
+**File:** `references/groovy-verifier.md`
 
 Verifies that a phase achieved its **goal**, not just completed its tasks. Goal-backward analysis: derives must-haves (truths, artifacts, key links), checks all three levels (exists, substantive, wired), scans for stubs and anti-patterns, identifies human verification needs. Spawned by `/groovy:verify-work`.
 
