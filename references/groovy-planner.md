@@ -405,14 +405,13 @@ Output: [Artifacts created]
 </objective>
 
 <execution_context>
-@C:/Users/Groovy/.gemini/get-shit-done/workflows/execute-plan.md
-@C:/Users/Groovy/.gemini/get-shit-done/templates/summary.md
+Executor will follow the groovy-executor agent instructions.
 </execution_context>
 
 <context>
-@.planning/PROJECT.md
-@.planning/ROADMAP.md
-@.planning/STATE.md
+@.groovy/PROJECT.md
+@.groovy/ROADMAP.md
+@.groovy/STATE.md
 
 # Only reference prior plan SUMMARYs if genuinely needed
 @path/to/relevant/source.ts
@@ -439,7 +438,7 @@ Output: [Artifacts created]
 </success_criteria>
 
 <output>
-After completion, create `.planning/phases/XX-name/{phase}-{plan}-SUMMARY.md`
+After completion, create `.groovy/phases/XX-name/{phase}-{plan}-SUMMARY.md`
 </output>
 ```
 
@@ -857,7 +856,7 @@ Triggered when orchestrator provides `<revision_context>` with checker issues. N
 ### Step 1: Load Existing Plans
 
 ```bash
-cat .planning/phases/$PHASE-*/$PHASE-*-PLAN.md
+cat .groovy/phases/$PHASE-*/$PHASE-*-PLAN.md
 ```
 
 Build mental model of current plan structure, existing tasks, must_haves.
@@ -905,7 +904,8 @@ Group by plan, dimension, severity.
 ### Step 6: Commit
 
 ```bash
-node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs commit "fix($PHASE): revise plans based on checker feedback" --files .planning/phases/$PHASE-*/$PHASE-*-PLAN.md
+git add .groovy/phases/$PHASE-*/$PHASE-*-PLAN.md
+git commit -m "fix($PHASE): revise plans based on checker feedback"
 ```
 
 ### Step 7: Return Revision Summary
@@ -924,8 +924,8 @@ node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs commit "fix($PHA
 
 ### Files Updated
 
-- .planning/phases/16-xxx/16-01-PLAN.md
-- .planning/phases/16-xxx/16-02-PLAN.md
+- .groovy/phases/16-xxx/16-01-PLAN.md
+- .groovy/phases/16-xxx/16-02-PLAN.md
 
 {If any issues NOT addressed:}
 
@@ -944,24 +944,33 @@ node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs commit "fix($PHA
 Load planning context:
 
 ```bash
-INIT=$(node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs init plan-phase "$PHASE")
+# Find phase directory
+PHASE_DIR=$(ls -d .groovy/phases/*-* 2>/dev/null | grep "/${PHASE}-\|/0*${PHASE}-")
+PHASE_NUMBER="$PHASE"
+
+# Check for research and context files
+ls "$PHASE_DIR"/*-RESEARCH.md 2>/dev/null  # has_research
+ls "$PHASE_DIR"/*-CONTEXT.md 2>/dev/null   # has_context
+
+# Read config
+cat .groovy/config.json 2>/dev/null
 ```
 
-Extract from init JSON: `planner_model`, `researcher_model`, `checker_model`, `commit_docs`, `research_enabled`, `phase_dir`, `phase_number`, `has_research`, `has_context`.
+Extract: `phase_dir`, `phase_number`, `has_research`, `has_context`.
 
 Also read STATE.md for position, decisions, blockers:
 ```bash
-cat .planning/STATE.md 2>/dev/null
+cat .groovy/STATE.md 2>/dev/null
 ```
 
-If STATE.md missing but .planning/ exists, offer to reconstruct or continue without.
+If STATE.md missing but .groovy/ exists, offer to reconstruct or continue without.
 </step>
 
 <step name="load_codebase_context">
 Check for codebase map:
 
 ```bash
-ls .planning/codebase/*.md 2>/dev/null
+ls .groovy/codebase/*.md 2>/dev/null
 ```
 
 If exists, load relevant documents by phase type:
@@ -980,8 +989,8 @@ If exists, load relevant documents by phase type:
 
 <step name="identify_phase">
 ```bash
-cat .planning/ROADMAP.md
-ls .planning/phases/
+cat .groovy/ROADMAP.md
+ls .groovy/phases/
 ```
 
 If multiple phases available, ask which to plan. If obvious (first incomplete), proceed.
@@ -1000,7 +1009,10 @@ Apply discovery level protocol (see discovery_levels section).
 
 **Step 1 — Generate digest index:**
 ```bash
-node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs history-digest
+# List all phase SUMMARY.md files for digest
+ls .groovy/phases/*/*.md 2>/dev/null | grep SUMMARY
+# Get recent git history for context
+git log --oneline -20
 ```
 
 **Step 2 — Select relevant phases (typically 2-4):**
@@ -1015,7 +1027,7 @@ Select top 2-4 phases. Skip phases with no relevance signal.
 
 **Step 3 — Read full SUMMARYs for selected phases:**
 ```bash
-cat .planning/phases/{selected-phase}/*-SUMMARY.md
+cat .groovy/phases/{selected-phase}/*-SUMMARY.md
 ```
 
 From full SUMMARYs extract:
@@ -1035,7 +1047,7 @@ For phases not selected, retain from digest:
 
 **From RETROSPECTIVE.md (if exists):**
 ```bash
-cat .planning/RETROSPECTIVE.md 2>/dev/null | tail -100
+cat .groovy/RETROSPECTIVE.md 2>/dev/null | tail -100
 ```
 
 Read the most recent milestone retrospective and cross-milestone trends. Extract:
@@ -1119,32 +1131,24 @@ Use template structure for each PLAN.md.
 
 **ALWAYS use the Write tool to create files** — never use `Bash(cat << 'EOF')` or heredoc commands for file creation.
 
-Write to `.planning/phases/XX-name/{phase}-{NN}-PLAN.md`
+Write to `.groovy/phases/XX-name/{phase}-{NN}-PLAN.md`
 
 Include all frontmatter fields.
 </step>
 
 <step name="validate_plan">
-Validate each created PLAN.md using groovy-tools:
+Validate each created PLAN.md by reading it and checking:
 
-```bash
-VALID=$(node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs frontmatter validate "$PLAN_PATH" --schema plan)
-```
-
-Returns JSON: `{ valid, missing, present, schema }`
-
-**If `valid=false`:** Fix missing required fields before proceeding.
-
-Required plan frontmatter fields:
+**Frontmatter validation** — verify these required fields are present:
 - `phase`, `plan`, `type`, `wave`, `depends_on`, `files_modified`, `autonomous`, `must_haves`
 
-Also validate plan structure:
+**If any are missing:** Fix before proceeding.
 
+**Structure validation** — verify each task has required elements:
 ```bash
-STRUCTURE=$(node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs verify plan-structure "$PLAN_PATH")
+# Check task elements
+grep -n "<task\|<name>\|<files>\|<action>\|<verify>\|<done>" "$PLAN_PATH"
 ```
-
-Returns JSON: `{ valid, errors, warnings, task_count, tasks }`
 
 **If errors exist:** Fix before committing:
 - Missing `<name>` in task → add name element
@@ -1155,7 +1159,7 @@ Returns JSON: `{ valid, errors, warnings, task_count, tasks }`
 <step name="update_roadmap">
 Update ROADMAP.md to finalize phase placeholders:
 
-1. Read `.planning/ROADMAP.md`
+1. Read `.groovy/ROADMAP.md`
 2. Find phase entry (`### Phase {N}:`)
 3. Update placeholders:
 
@@ -1178,7 +1182,8 @@ Plans:
 
 <step name="git_commit">
 ```bash
-node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs commit "docs($PHASE): create phase plan" --files .planning/phases/$PHASE-*/$PHASE-*-PLAN.md .planning/ROADMAP.md
+git add .groovy/phases/$PHASE-*/$PHASE-*-PLAN.md .groovy/ROADMAP.md
+git commit -m "docs($PHASE): create phase plan"
 ```
 </step>
 

@@ -76,8 +76,9 @@ Set `is_re_verification = false`, proceed with Step 1.
 ```bash
 ls "$PHASE_DIR"/*-PLAN.md 2>/dev/null
 ls "$PHASE_DIR"/*-SUMMARY.md 2>/dev/null
-node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs roadmap get-phase "$PHASE_NUM"
-grep -E "^| $PHASE_NUM" .planning/REQUIREMENTS.md 2>/dev/null
+# Read phase details from ROADMAP.md
+grep -A 20 "### Phase $PHASE_NUM:" .groovy/ROADMAP.md 2>/dev/null
+grep -E "^| $PHASE_NUM" .groovy/REQUIREMENTS.md 2>/dev/null
 ```
 
 Extract phase goal from ROADMAP.md — this is the outcome to verify, not the tasks.
@@ -113,10 +114,11 @@ must_haves:
 If no must_haves in frontmatter, check for Success Criteria:
 
 ```bash
-PHASE_DATA=$(node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs roadmap get-phase "$PHASE_NUM" --raw)
+# Extract phase details including success criteria from ROADMAP.md
+grep -A 30 "### Phase $PHASE_NUM:" .groovy/ROADMAP.md 2>/dev/null
 ```
 
-Parse the `success_criteria` array from the JSON output. If non-empty:
+Parse the success criteria listed under the phase header. If non-empty:
 1. **Use each Success Criterion directly as a truth** (they are already observable, testable behaviors)
 2. **Derive artifacts:** For each truth, "What must EXIST?" — map to concrete file paths
 3. **Derive key links:** For each artifact, "What must be CONNECTED?" — this is where stubs hide
@@ -153,18 +155,24 @@ For each truth:
 
 ## Step 4: Verify Artifacts (Three Levels)
 
-Use groovy-tools for artifact verification against must_haves in PLAN frontmatter:
+Verify artifacts from must_haves in PLAN frontmatter manually:
 
+For each artifact in `must_haves.artifacts`:
 ```bash
-ARTIFACT_RESULT=$(node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs verify artifacts "$PLAN_PATH")
+# Check existence
+[ -f "$artifact_path" ] && echo "EXISTS" || echo "MISSING"
+
+# Check substantiveness (line count vs min_lines)
+wc -l "$artifact_path" 2>/dev/null
+
+# Check for expected patterns/exports
+grep -l "$expected_pattern" "$artifact_path" 2>/dev/null
 ```
 
-Parse JSON result: `{ all_passed, passed, total, artifacts: [{path, exists, issues, passed}] }`
-
-For each artifact in result:
-- `exists=false` → MISSING
-- `issues` contains "Only N lines" or "Missing pattern" → STUB
-- `passed=true` → VERIFIED
+For each artifact, determine status:
+- File doesn't exist → MISSING
+- File exists but too few lines or missing expected patterns → STUB
+- File exists and passes checks → VERIFIED
 
 **Artifact status mapping:**
 
@@ -202,18 +210,19 @@ grep -r "$artifact_name" "${search_path:-src/}" --include="*.ts" --include="*.ts
 
 Key links are critical connections. If broken, the goal fails even with all artifacts present.
 
-Use groovy-tools for key link verification against must_haves in PLAN frontmatter:
+Verify key links from must_haves in PLAN frontmatter manually:
 
+For each key_link in `must_haves.key_links`:
 ```bash
-LINKS_RESULT=$(node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs verify key-links "$PLAN_PATH")
+# Check that the "from" file references the "to" target via the expected method
+grep -n "$to_pattern" "$from_file" 2>/dev/null
+grep -n "$via_pattern" "$from_file" 2>/dev/null
 ```
 
-Parse JSON result: `{ all_verified, verified, total, links: [{from, to, via, verified, detail}] }`
-
-For each link:
-- `verified=true` → WIRED
-- `verified=false` with "not found" in detail → NOT_WIRED
-- `verified=false` with "Pattern not found" → PARTIAL
+For each link, determine status:
+- Both "to" and "via" patterns found → WIRED
+- "to" found but "via" missing → PARTIAL
+- Neither found → NOT_WIRED
 
 **Fallback patterns** (if must_haves.key_links not defined in PLAN):
 
@@ -276,7 +285,7 @@ For each requirement ID from plans:
 **6c. Check for orphaned requirements:**
 
 ```bash
-grep -E "Phase $PHASE_NUM" .planning/REQUIREMENTS.md 2>/dev/null
+grep -E "Phase $PHASE_NUM" .groovy/REQUIREMENTS.md 2>/dev/null
 ```
 
 If REQUIREMENTS.md maps additional IDs to this phase that don't appear in ANY plan's `requirements` field, flag as **ORPHANED** — these requirements were expected but no plan claimed them. ORPHANED requirements MUST appear in the verification report.
@@ -286,14 +295,14 @@ If REQUIREMENTS.md maps additional IDs to this phase that don't appear in ANY pl
 Identify files modified in this phase from SUMMARY.md key-files section, or extract commits and verify:
 
 ```bash
-# Option 1: Extract from SUMMARY frontmatter
-SUMMARY_FILES=$(node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs summary-extract "$PHASE_DIR"/*-SUMMARY.md --fields key-files)
+# Extract key files from SUMMARY frontmatter
+grep -A 20 "key-files\|key_files:" "$PHASE_DIR"/*-SUMMARY.md 2>/dev/null
 
-# Option 2: Verify commits exist (if commit hashes documented)
+# Verify commits exist (if commit hashes documented)
 COMMIT_HASHES=$(grep -oE "[a-f0-9]{7,40}" "$PHASE_DIR"/*-SUMMARY.md | head -10)
-if [ -n "$COMMIT_HASHES" ]; then
-  COMMITS_VALID=$(node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs verify commits $COMMIT_HASHES)
-fi
+for hash in $COMMIT_HASHES; do
+  git log --oneline "$hash" -1 2>/dev/null && echo "FOUND: $hash" || echo "MISSING: $hash"
+done
 
 # Fallback: grep for files
 grep -E "^\- \`" "$PHASE_DIR"/*-SUMMARY.md | sed 's/.*`\([^`]*\)`.*/\1/' | sort -u
@@ -371,7 +380,7 @@ gaps:
 
 **ALWAYS use the Write tool to create files** — never use `Bash(cat << 'EOF')` or heredoc commands for file creation.
 
-Create `.planning/phases/{phase_dir}/{phase_num}-VERIFICATION.md`:
+Create `.groovy/phases/{phase_dir}/{phase_num}-VERIFICATION.md`:
 
 ```markdown
 ---
@@ -465,7 +474,7 @@ Return with:
 
 **Status:** {passed | gaps_found | human_needed}
 **Score:** {N}/{M} must-haves verified
-**Report:** .planning/phases/{phase_dir}/{phase_num}-VERIFICATION.md
+**Report:** .groovy/phases/{phase_dir}/{phase_num}-VERIFICATION.md
 
 {If passed:}
 All must-haves verified. Phase goal achieved. Ready to proceed.

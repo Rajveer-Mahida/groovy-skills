@@ -42,18 +42,26 @@ This ensures project-specific patterns, conventions, and best practices are appl
 Load execution context:
 
 ```bash
-INIT=$(node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs init execute-phase "$PHASE")
+# Find phase directory
+PHASE_DIR=$(ls -d .groovy/phases/*-* 2>/dev/null | grep "/${PHASE}-\|/0*${PHASE}-")
+
+# List plans and incomplete plans
+ls "$PHASE_DIR"/*-PLAN.md 2>/dev/null
+ls "$PHASE_DIR"/*-SUMMARY.md 2>/dev/null
+
+# Read config
+cat .groovy/config.json 2>/dev/null
 ```
 
-Extract from init JSON: `executor_model`, `commit_docs`, `phase_dir`, `plans`, `incomplete_plans`.
+Extract: `phase_dir`, `plans` (PLAN.md files), `incomplete_plans` (plans without matching SUMMARY.md).
 
 Also read STATE.md for position, decisions, blockers:
 ```bash
-cat .planning/STATE.md 2>/dev/null
+cat .groovy/STATE.md 2>/dev/null
 ```
 
-If STATE.md missing but .planning/ exists: offer to reconstruct or continue without.
-If .planning/ missing: Error — project not initialized.
+If STATE.md missing but .groovy/ exists: offer to reconstruct or continue without.
+If .groovy/ missing: Error — project not initialized.
 </step>
 
 <step name="load_plan">
@@ -195,7 +203,7 @@ Track auto-fix attempts per task. After 3 auto-fix attempts on a single task:
 Check if auto mode is active at executor start:
 
 ```bash
-AUTO_CFG=$(node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs config-get workflow.auto_advance 2>/dev/null || echo "false")
+AUTO_CFG=$(cat .groovy/config.json 2>/dev/null | grep -o '"auto_advance"[[:space:]]*:[[:space:]]*[a-z]*' | grep -o 'true\|false' || echo "false")
 ```
 
 Store the result for checkpoint handling below.
@@ -206,9 +214,6 @@ Store the result for checkpoint handling below.
 **CRITICAL: Automation before verification**
 
 Before any `checkpoint:human-verify`, ensure verification environment is ready. If plan lacks server startup before checkpoint, ADD ONE (deviation Rule 3).
-
-For full automation-first patterns, server lifecycle, CLI handling:
-**See @C:/Users/Groovy/.gemini/get-shit-done/references/checkpoints.md**
 
 **Quick reference:** Users NEVER run CLI commands. Users ONLY visit URLs, click UI, evaluate visuals, provide secrets. Claude does all automation.
 
@@ -327,11 +332,9 @@ git commit -m "{type}({phase}-{plan}): {concise task description}
 </task_commit_protocol>
 
 <summary_creation>
-After all tasks complete, create `{phase}-{plan}-SUMMARY.md` at `.planning/phases/XX-name/`.
+After all tasks complete, create `{phase}-{plan}-SUMMARY.md` at `.groovy/phases/XX-name/`.
 
 **ALWAYS use the Write tool to create files** — never use `Bash(cat << 'EOF')` or heredoc commands for file creation.
-
-**Use template:** @C:/Users/Groovy/.gemini/get-shit-done/templates/summary.md
 
 **Frontmatter:** phase, plan, subsystem, tags, dependency graph (requires/provides/affects), tech-stack (added/patterns), key-files (created/modified), decisions, metrics (duration, completed date).
 
@@ -380,62 +383,47 @@ Do NOT skip. Do NOT proceed to state updates if self-check fails.
 </self_check>
 
 <state_updates>
-After SUMMARY.md, update STATE.md using groovy-tools:
+After SUMMARY.md, update STATE.md and ROADMAP.md directly using the `Edit` tool:
 
-```bash
-# Advance plan counter (handles edge cases automatically)
-node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs state advance-plan
+**1. Advance plan counter in STATE.md:**
+- Increment the "Current Plan" field
+- If this was the last plan in the phase, update status to "Phase Complete"
+- Update the progress bar based on completed SUMMARY.md count vs total PLAN.md count
 
-# Recalculate progress bar from disk state
-node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs state update-progress
+**2. Record execution metrics in STATE.md:**
+- Append a row to the Performance Metrics table: phase, plan, duration, task count, file count
 
-# Record execution metrics
-node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs state record-metric \
-  --phase "$PHASE" --plan "$PLAN" --duration "$DURATION" \
-  --tasks "$TASK_COUNT" --files "$FILE_COUNT"
+**3. Add decisions to STATE.md:**
+- Extract key decisions from SUMMARY.md frontmatter or "Decisions Made" section
+- Append each to the Decisions section in STATE.md
 
-# Add decisions (extract from SUMMARY.md key-decisions)
-for decision in "${DECISIONS[@]}"; do
-  node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs state add-decision \
-    --phase "$PHASE" --summary "$decision"
-done
+**4. Update session info in STATE.md:**
+- Update "Last session" timestamp and "Stopped At" to `Completed $PHASE-$PLAN-PLAN.md`
 
-# Update session info
-node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs state record-session \
-  --stopped-at "Completed $PHASE-$PLAN-PLAN.md"
-```
+**5. Update ROADMAP.md progress:**
+- Find the progress table row for this phase
+- Update plan completion count (count SUMMARY.md files vs PLAN.md files)
+- Update status column
 
-```bash
-# Update ROADMAP.md progress for this phase (plan counts, status)
-node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs roadmap update-plan-progress "$PHASE_NUMBER"
-
-# Mark completed requirements from PLAN.md frontmatter
-# Extract the `requirements` array from the plan's frontmatter, then mark each complete
-node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs requirements mark-complete $REQ_IDS
-```
-
-**Requirement IDs:** Extract from the PLAN.md frontmatter `requirements:` field (e.g., `requirements: [AUTH-01, AUTH-02]`). Pass all IDs to `requirements mark-complete`. If the plan has no requirements field, skip this step.
-
-**State command behaviors:**
-- `state advance-plan`: Increments Current Plan, detects last-plan edge case, sets status
-- `state update-progress`: Recalculates progress bar from SUMMARY.md counts on disk
-- `state record-metric`: Appends to Performance Metrics table
-- `state add-decision`: Adds to Decisions section, removes placeholders
-- `state record-session`: Updates Last session timestamp and Stopped At fields
-- `roadmap update-plan-progress`: Updates ROADMAP.md progress table row with PLAN vs SUMMARY counts
-- `requirements mark-complete`: Checks off requirement checkboxes and updates traceability table in REQUIREMENTS.md
-
-**Extract decisions from SUMMARY.md:** Parse key-decisions from frontmatter or "Decisions Made" section → add each via `state add-decision`.
+**6. Mark completed requirements in REQUIREMENTS.md:**
+- Extract the `requirements` array from the PLAN.md frontmatter (e.g., `requirements: [AUTH-01, AUTH-02]`)
+- Find each requirement ID in REQUIREMENTS.md and check off its checkbox
+- Update the traceability table status from "Pending" to "Complete"
+- If the plan has no requirements field, skip this step
 
 **For blockers found during execution:**
-```bash
-node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs state add-blocker "Blocker description"
-```
+- Add blocker description to the Blockers section in STATE.md using the `Edit` tool
 </state_updates>
 
 <final_commit>
+Stage and commit planning docs (NEVER `git add .` or `git add -A`):
+
 ```bash
-node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs commit "docs({phase}-{plan}): complete [plan-name] plan" --files .planning/phases/XX-name/{phase}-{plan}-SUMMARY.md .planning/STATE.md .planning/ROADMAP.md .planning/REQUIREMENTS.md
+git add .groovy/phases/XX-name/{phase}-{plan}-SUMMARY.md
+git add .groovy/STATE.md
+git add .groovy/ROADMAP.md
+git add .groovy/REQUIREMENTS.md
+git commit -m "docs({phase}-{plan}): complete [plan-name] plan"
 ```
 
 Separate from per-task commits — captures execution results only.

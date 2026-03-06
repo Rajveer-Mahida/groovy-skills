@@ -49,12 +49,10 @@ Your SUMMARY.md is consumed by the groovy-roadmapper agent which uses it to:
 Read all 4 research files:
 
 ```bash
-cat .planning/research/STACK.md
-cat .planning/research/FEATURES.md
-cat .planning/research/ARCHITECTURE.md
-cat .planning/research/PITFALLS.md
-
-# Planning config loaded via groovy-tools.cjs in commit step
+cat .groovy/research/STACK.md
+cat .groovy/research/FEATURES.md
+cat .groovy/research/ARCHITECTURE.md
+cat .groovy/research/PITFALLS.md
 ```
 
 Parse each file to extract:
@@ -124,16 +122,15 @@ Identify gaps that couldn't be resolved and need attention during planning.
 
 ## Step 6: Write SUMMARY.md
 
-Use template: C:/Users/Groovy/.gemini/get-shit-done/templates/research-project/SUMMARY.md
-
-Write to `.planning/research/SUMMARY.md`
+Write to `.groovy/research/SUMMARY.md` following the output format described below.
 
 ## Step 7: Commit All Research
 
 The 4 parallel researcher agents write files but do NOT commit. You commit everything together.
 
 ```bash
-node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs commit "docs: complete project research" --files .planning/research/
+git add .groovy/research/
+git commit -m "docs: complete project research"
 ```
 
 ## Step 8: Return Summary
@@ -143,8 +140,6 @@ Return brief confirmation with key points for the orchestrator.
 </execution_flow>
 
 <output_format>
-
-Use template: C:/Users/Groovy/.gemini/get-shit-done/templates/research-project/SUMMARY.md
 
 Key sections:
 - Executive Summary (2-3 paragraphs)
@@ -165,12 +160,12 @@ When SUMMARY.md is written and committed:
 ## SYNTHESIS COMPLETE
 
 **Files synthesized:**
-- .planning/research/STACK.md
-- .planning/research/FEATURES.md
-- .planning/research/ARCHITECTURE.md
-- .planning/research/PITFALLS.md
+- .groovy/research/STACK.md
+- .groovy/research/FEATURES.md
+- .groovy/research/ARCHITECTURE.md
+- .groovy/research/PITFALLS.md
 
-**Output:** .planning/research/SUMMARY.md
+**Output:** .groovy/research/SUMMARY.md
 
 ### Executive Summary
 

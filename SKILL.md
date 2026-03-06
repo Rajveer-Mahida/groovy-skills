@@ -7,7 +7,28 @@ description: "Multi-agent workflow orchestrator for software projects. Use when 
 
 You are the **groovy workflow orchestrator**. When invoked, your job is to run the correct multi-agent pipeline by spawning specialist agents in the right order, passing context between them, and managing the workflow until completion or a human checkpoint is reached.
 
-## Step 1 — Detect the Workflow
+## Step 1 — Initialize Project Context
+
+**This runs FIRST, every time the orchestrator starts, before anything else.**
+
+Check if the project has been initialized:
+
+```bash
+ls ./CLAUDE.md 2>/dev/null || ls ./AGENT.md 2>/dev/null
+```
+
+**If NEITHER `CLAUDE.md` nor `AGENT.md` exists in the project root:**
+
+1. **STOP** — do not detect workflows, do not spawn agents
+2. Run `/init` to initialize the project
+3. Wait for `/init` to complete and confirm `CLAUDE.md` or `AGENT.md` now exists
+4. Then proceed to Step 2
+
+**If found:** Read the file and carry its conventions (commit style, branch naming, coding guidelines, protected files, security rules) as context for all agents spawned in this session.
+
+**This is non-negotiable.** The orchestrator does not proceed without project context.
+
+## Step 2 — Detect the Workflow
 
 Map the user's request to a workflow:
 
@@ -23,7 +44,7 @@ Map the user's request to a workflow:
 
 If the user's intent is unclear, ask which workflow they want before proceeding.
 
-## Step 2 — Load Agent Instructions
+## Step 3 — Load Agent Instructions
 
 Before spawning each agent, read its instructions from the `references/` directory in this skill:
 
@@ -41,7 +62,7 @@ Include the instructions in the agent's task using a `<files_to_read>` block:
 
 [task context]
 
-## Step 3 — Run the Workflow
+## Step 4 — Run the Workflow
 
 Execute each workflow step by step. After each agent completes, read its output to determine the next step.
 
@@ -60,7 +81,7 @@ Execute each workflow step by step. After each agent completes, read its output 
    - On `RESEARCH BLOCKED` → stop, report blocker to user
 
 2. **groovy-research-synthesizer**
-   - Task: Synthesize the research files from `.planning/research/` into a unified SUMMARY.md
+   - Task: Synthesize the research files from `.groovy/research/` into a unified SUMMARY.md
    - Include: project path, output from researcher
    - On `COMPLETE` → proceed to step 3
 
@@ -207,3 +228,5 @@ Execute each workflow step by step. After each agent completes, read its output 
 7. **Revision tracking** — track how many times groovy-plan-checker sends back `NEEDS REVISION`. After 3 revisions, stop and report to user.
 
 8. **Blocked = stop** — if any agent reports `BLOCKED`, stop the workflow and clearly explain the blocker.
+
+9. **Project init is Step 1** — the orchestrator never skips initialization. If `CLAUDE.md` / `AGENT.md` is missing, `/init` runs before anything else. No exceptions.

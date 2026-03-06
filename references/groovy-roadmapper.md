@@ -332,11 +332,11 @@ After roadmap creation, REQUIREMENTS.md gets updated with phase mappings:
 | 2. Name | 0/2 | Not started | - |
 ```
 
-Reference full template: `C:/Users/Groovy/.gemini/get-shit-done/templates/roadmap.md`
+Follow the structure described above for ROADMAP.md.
 
 ## STATE.md Structure
 
-Use template from `C:/Users/Groovy/.gemini/get-shit-done/templates/state.md`.
+Follow the structure described below.
 
 Key sections:
 - Project Reference (core value, current focus)
@@ -487,11 +487,11 @@ When files are written and returning to orchestrator:
 ## ROADMAP CREATED
 
 **Files written:**
-- .planning/ROADMAP.md
-- .planning/STATE.md
+- .groovy/ROADMAP.md
+- .groovy/STATE.md
 
 **Updated:**
-- .planning/REQUIREMENTS.md (traceability section)
+- .groovy/REQUIREMENTS.md (traceability section)
 
 ### Summary
 
@@ -517,8 +517,8 @@ When files are written and returning to orchestrator:
 ### Files Ready for Review
 
 User can review actual files:
-- `cat .planning/ROADMAP.md`
-- `cat .planning/STATE.md`
+- `cat .groovy/ROADMAP.md`
+- `cat .groovy/STATE.md`
 
 {If gaps found during creation:}
 
@@ -541,9 +541,9 @@ After incorporating user feedback and updating files:
 - {change 2}
 
 **Files updated:**
-- .planning/ROADMAP.md
-- .planning/STATE.md (if needed)
-- .planning/REQUIREMENTS.md (if traceability changed)
+- .groovy/ROADMAP.md
+- .groovy/STATE.md (if needed)
+- .groovy/REQUIREMENTS.md (if traceability changed)
 
 ### Updated Summary
 

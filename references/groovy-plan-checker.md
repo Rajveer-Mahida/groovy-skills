@@ -368,38 +368,49 @@ If FAIL: return to planner with specific fixes. Same revision loop as other dime
 
 Load phase operation context:
 ```bash
-INIT=$(node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs init phase-op "$PHASE_ARG")
+# Find phase directory
+PHASE_DIR=$(ls -d .groovy/phases/*-* 2>/dev/null | grep "/${PHASE_ARG}-\|/0*${PHASE_ARG}-")
+PHASE_NUMBER="$PHASE_ARG"
+
+# Count plans
+ls "$PHASE_DIR"/*-PLAN.md 2>/dev/null
 ```
 
-Extract from init JSON: `phase_dir`, `phase_number`, `has_plans`, `plan_count`.
+Extract: `phase_dir`, `phase_number`, plan count.
 
 Orchestrator provides CONTEXT.md content in the verification prompt. If provided, parse for locked decisions, discretion areas, deferred ideas.
 
 ```bash
-ls "$phase_dir"/*-PLAN.md 2>/dev/null
+ls "$PHASE_DIR"/*-PLAN.md 2>/dev/null
 # Read research for Nyquist validation data
-cat "$phase_dir"/*-RESEARCH.md 2>/dev/null
-node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs roadmap get-phase "$phase_number"
-ls "$phase_dir"/*-BRIEF.md 2>/dev/null
+cat "$PHASE_DIR"/*-RESEARCH.md 2>/dev/null
+# Read phase details from ROADMAP.md
+grep -A 20 "### Phase $PHASE_NUMBER:" .groovy/ROADMAP.md 2>/dev/null
+ls "$PHASE_DIR"/*-BRIEF.md 2>/dev/null
 ```
 
 **Extract:** Phase goal, requirements (decompose goal), locked decisions, deferred ideas.
 
 ## Step 2: Load All Plans
 
-Use groovy-tools to validate plan structure:
+Read and parse each plan file manually:
 
 ```bash
 for plan in "$PHASE_DIR"/*-PLAN.md; do
   echo "=== $plan ==="
-  PLAN_STRUCTURE=$(node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs verify plan-structure "$plan")
-  echo "$PLAN_STRUCTURE"
+  # Check frontmatter fields
+  head -50 "$plan"
+  # Check task structure
+  grep -n "<task\|</task>\|<name>\|<files>\|<action>\|<verify>\|<done>" "$plan"
 done
 ```
 
-Parse JSON result: `{ valid, errors, warnings, task_count, tasks: [{name, hasFiles, hasAction, hasVerify, hasDone}], frontmatter_fields }`
+For each plan, verify:
+- Required frontmatter fields present: `phase`, `plan`, `type`, `wave`, `depends_on`, `files_modified`, `autonomous`, `must_haves`
+- Each task has required elements: `<name>`, `<files>`, `<action>`, `<verify>`, `<done>`
+- Checkpoint tasks have `autonomous: false`
 
-Map errors/warnings to verification dimensions:
+Map findings to verification dimensions:
 - Missing frontmatter field → `task_completeness` or `must_haves_derivation`
 - Task missing elements → `task_completeness`
 - Wave/depends_on inconsistency → `dependency_correctness`
@@ -407,13 +418,9 @@ Map errors/warnings to verification dimensions:
 
 ## Step 3: Parse must_haves
 
-Extract must_haves from each plan using groovy-tools:
+Extract must_haves from each plan's YAML frontmatter by reading the file and parsing the `must_haves:` block.
 
-```bash
-MUST_HAVES=$(node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs frontmatter get "$PLAN_PATH" --field must_haves)
-```
-
-Returns JSON: `{ truths: [...], artifacts: [...], key_links: [...] }`
+Expected structure: `{ truths: [...], artifacts: [...], key_links: [...] }`
 
 **Expected structure:**
 
@@ -450,21 +457,15 @@ For each requirement: find covering task(s), verify action is specific, flag gap
 
 ## Step 5: Validate Task Structure
 
-Use groovy-tools plan-structure verification (already run in Step 2):
-
-```bash
-PLAN_STRUCTURE=$(node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs verify plan-structure "$PLAN_PATH")
-```
-
-The `tasks` array in the result shows each task's completeness:
-- `hasFiles` — files element present
-- `hasAction` — action element present
-- `hasVerify` — verify element present
-- `hasDone` — done element present
+Re-use the plan structure analysis from Step 2. For each task, verify:
+- `hasFiles` — `<files>` element present
+- `hasAction` — `<action>` element present
+- `hasVerify` — `<verify>` element present
+- `hasDone` — `<done>` element present
 
 **Check:** valid task type (auto, checkpoint:*, tdd), auto tasks have files/action/verify/done, action is specific, verify is runnable, done is measurable.
 
-**For manual validation of specificity** (groovy-tools checks structure, not content quality):
+**For validation of specificity** (structure checks don't cover content quality):
 ```bash
 grep -B5 "</task>" "$PHASE_DIR"/*-PLAN.md | grep -v "<verify>"
 ```

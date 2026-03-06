@@ -121,21 +121,9 @@ When researching "best library for X": find what the ecosystem actually uses, do
 
 **WebSearch tips:** Always include current year. Use multiple query variations. Cross-verify with authoritative sources.
 
-## Enhanced Web Search (Brave API)
+## Web Search
 
-Check `brave_search` from init context. If `true`, use Brave Search for higher quality results:
-
-```bash
-node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs websearch "your query" --limit 10
-```
-
-**Options:**
-- `--limit N` — Number of results (default: 10)
-- `--freshness day|week|month` — Restrict to recent content
-
-If `brave_search: false` (or not set), use built-in WebSearch tool instead.
-
-Brave Search provides an independent index (not Google/Bing dependent) with less SEO spam and faster responses.
+Use the built-in `WebSearch` tool for ecosystem discovery, community patterns, and real-world usage research. For fetching specific URLs (official docs, READMEs, changelogs), use the `WebFetch` tool.
 
 ## Verification Protocol
 
@@ -201,7 +189,7 @@ Priority: Context7 > Official Docs > Official GitHub > Verified WebSearch > Unve
 
 ## RESEARCH.md Structure
 
-**Location:** `.planning/phases/XX-name/{phase_num}-RESEARCH.md`
+**Location:** `.groovy/phases/XX-name/{phase_num}-RESEARCH.md`
 
 ```markdown
 # Phase [X]: [Name] - Research
@@ -304,7 +292,7 @@ Verified patterns from official sources:
 
 ## Validation Architecture
 
-> Skip this section entirely if workflow.nyquist_validation is false in .planning/config.json
+> Skip this section entirely if workflow.nyquist_validation is false in .groovy/config.json
 
 ### Test Framework
 | Property | Value |
@@ -363,14 +351,20 @@ Verified patterns from official sources:
 Orchestrator provides: phase number/name, description/goal, requirements, constraints, output path.
 - Phase requirement IDs (e.g., AUTH-01, AUTH-02) — the specific requirements this phase MUST address
 
-Load phase context using init command:
+Load phase context:
 ```bash
-INIT=$(node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs init phase-op "$PHASE")
+# Find phase directory
+PHASE_DIR=$(ls -d .groovy/phases/*-* 2>/dev/null | grep "/${PHASE}-\|/0*${PHASE}-")
+PADDED_PHASE=$(basename "$PHASE_DIR" | cut -d'-' -f1)
+PHASE_NUMBER="$PHASE"
+
+# Read config
+cat .groovy/config.json 2>/dev/null
 ```
 
-Extract from init JSON: `phase_dir`, `padded_phase`, `phase_number`, `commit_docs`.
+Extract: `phase_dir`, `padded_phase`, `phase_number`.
 
-Also read `.planning/config.json` — if `workflow.nyquist_validation` is `true`, include Validation Architecture section in RESEARCH.md. If `false`, skip it.
+Also read `.groovy/config.json` — if `workflow.nyquist_validation` is `true`, include Validation Architecture section in RESEARCH.md. If `false`, skip it.
 
 Then read CONTEXT.md if exists:
 ```bash
@@ -467,7 +461,8 @@ Write to: `$PHASE_DIR/$PADDED_PHASE-RESEARCH.md`
 ## Step 7: Commit Research (optional)
 
 ```bash
-node C:/Users/Groovy/.gemini/get-shit-done/bin/groovy-tools.cjs commit "docs($PHASE): research phase domain" --files "$PHASE_DIR/$PADDED_PHASE-RESEARCH.md"
+git add "$PHASE_DIR/$PADDED_PHASE-RESEARCH.md"
+git commit -m "docs($PHASE): research phase domain"
 ```
 
 ## Step 8: Return Structured Result
